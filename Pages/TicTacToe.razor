@@ -1,0 +1,137 @@
+﻿@using BlazorTicTacToe.Types
+@page "/tictactoe"
+
+<h1>Tic Tac Toe</h1>
+    <div class="game">
+        <div class="game-board">
+            <div class="status">@{@getStatus(history[stepNumber].Items, xIsNext);}</div>
+            <div class="squares">
+            @for (int i = 0; i < 9; i++)
+            {
+                int local_i = i;
+                <button class="square" @onclick="@(() => @selectSquare(local_i))">
+                   @history[stepNumber].Items[local_i]
+                </button>
+            }
+            </div>
+            <div class="game-info">
+                <ol>
+                    @{
+                        @for (int i = 0; i < history.Count(); i++)
+                        {
+                            int local_i = i;
+                            string desc = local_i == 0 ? "Go to game start" : "Go to move # " + local_i.ToString();
+                                
+                            <li>
+                               <button @onclick=@(() => @jumpTo(local_i))>@desc</button>
+                            </li>
+                         }
+                      }
+                </ol>
+            </div>
+        </div>
+    </div>
+
+@code {
+    public List<Squares> history = new List<Squares>();
+    public int stepNumber = 0;
+    public bool xIsNext = true;
+    public Squares squares = new Squares();
+
+    protected override void OnInitialized()
+    {
+        squares.Items = new String[9];
+        history.Add(squares);
+    }
+    private string selectSquare(int square)
+    {
+        return gameReducer(new { type = "SELECT_SQUARE", square = square });
+    }
+    private string jumpTo(int step)
+    {
+        return gameReducer(new { type = "JUMP_TO", step = step });
+    }
+    public string getStatus(string[] squares, bool xIsNext)
+    {
+        var winner = calculateWinner(squares);
+        if (winner != null)
+        {
+            return "Winner: " + @winner;
+        }
+        else if (squares.All(x => x != null))
+        {
+            return "Scratch: Cat's game";
+        }
+        else
+        {
+            return "Next player: " + (xIsNext ? "X" : "0");
+        }
+    }
+
+    protected string gameReducer(dynamic action)
+    {
+        switch (action.type)
+        {
+            case "SELECT_SQUARE":
+                {
+                    int square = action.square;
+                    history = history.GetRange(0, stepNumber + 1);
+
+                    Squares current = history[history.Count - 1];
+                    string[] squares = current.Items;
+                    var winner = calculateWinner(squares);
+                    if (winner != null || squares[square] != null)
+                    {
+                        return "Ok";
+                    }
+                    Squares squaresCopy = new Squares();
+                    dynamic items = current.Items.Clone();
+                    squaresCopy.Items = items;
+                    squaresCopy.Items[square] = xIsNext ? "X" : "0";
+                    history.Add(squaresCopy);
+                    stepNumber = history.Count() - 1;
+                    xIsNext = !xIsNext;
+                    return "Ok";
+                }
+            case "JUMP_TO":
+                {
+                    dynamic step = action.step;
+                    stepNumber = step;
+                    xIsNext = step % 2 == 0;
+                    return "Ok";
+                }
+            default:
+                {
+                    throw new Exception($"Unhandled action type: ${action.type}. Please fix it. Thank you.");
+                }
+        }
+    }
+
+    string calculateWinner(string[] squares)
+    {
+        int[,] lines = new int[,]
+        {
+            { 0, 1, 2 },
+            { 3, 4, 5 },
+            { 6, 7, 8 },
+            { 0, 3, 6 },
+            { 1, 4, 7 },
+            { 2, 5, 8 },
+            { 0, 4, 8 },
+            { 2, 4, 6 }
+        };
+
+        for (var i = 0; i < 8; i++)
+        {
+            var a = lines[i, 0];
+            var b = lines[i, 1];
+            var c = lines[i, 2];
+
+            if ((squares[a] == squares[b]) && (squares[a] == squares[c]))
+            {
+                return squares[a];
+            }
+        }
+        return null;
+    }
+}
